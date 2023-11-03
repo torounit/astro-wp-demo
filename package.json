@@ -10,7 +10,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^3.3.3"
+    "astro": "^3.3.3",
+    "wp-types": "^3.63.0"
   },
   "volta": {
     "node": "18.18.2"
