@@ -1,5 +1,5 @@
 ---
-import { WP_REST_API_Posts,WP_REST_API_Post, WP_REST_API_User } from "wp-types";
+import type { WP_REST_API_Posts,WP_REST_API_Post, WP_REST_API_User } from "wp-types";
 const { slug } = Astro.params;
 
 const res = await fetch(`https://wordpress.org/news/wp-json/wp/v2/posts?slug=${slug}&_embed`)
