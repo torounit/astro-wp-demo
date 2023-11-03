@@ -1,7 +1,19 @@
 ---
 import type { WP_REST_API_Posts, WP_REST_API_User } from "wp-types";
-const res = await fetch("https://wordpress.org/news/wp-json/wp/v2/posts?_embed")
+const { page } = Astro.params;
+const res = await fetch(`https://wordpress.org/news/wp-json/wp/v2/posts?_embed&page=${page}`)
 const posts: WP_REST_API_Posts = await res.json();
+const totalPages = Number(res.headers.get("X-WP-TotalPages"));
+
+export async function getStaticPaths() {
+  const data = await fetch("https://wordpress.org/news/wp-json/wp/v2/posts")
+  const posts = await data.json();
+  const totalPages = Number(data.headers.get("X-WP-TotalPages"));
+  return [...Array(totalPages).keys()].map((i) => ({
+    params: { page: String(i + 1) },
+  }));
+}
+
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -81,7 +93,10 @@ const posts: WP_REST_API_Posts = await res.json();
                     }
 
                     <!-- Pager-->
-                    <div class="d-flex justify-content-end mb-4"><a class="btn btn-primary text-uppercase" href="/page/2">Older Posts →</a></div>
+                    <div class="d-flex justify-content-between mb-4">
+                        <a class="btn btn-primary text-uppercase" href={`/page/${parseInt(page, 10) - 1}`}>← Newer Posts</a>
+                        <a class="btn btn-primary text-uppercase" href={`/page/${parseInt(page, 10) + 1}`}>Older Posts →</a>
+                    </div>
                 </div>
             </div>
         </div>

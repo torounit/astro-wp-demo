@@ -10,17 +10,23 @@ const getFeaturedMediaURL = ( post: WP_REST_API_Post ) => {
         //@ts-ignore
         return post._embedded?.['wp:featuredmedia']?.[0].media_details.sizes.medium.source_url;
     }
-
     return '';
 }
 
 export async function getStaticPaths() {
-  let data = await fetch("https://wordpress.org/news/wp-json/wp/v2/posts")
+  const data = await fetch("https://wordpress.org/news/wp-json/wp/v2/posts")
+  const totalPages = Number(data.headers.get("X-WP-TotalPages"));
   let posts = await data.json();
 
-  return posts.map((post) => ({
-    params: { slug: post.slug },
-    props: { post: post },
+  for (let nextPage = 2; nextPage <= totalPages; nextPage++) {
+    const nextRequest = new Request(`https://wordpress.org/news/wp-json/wp/v2/posts?page=${nextPage}`);
+    const res = await fetch(nextRequest, {});
+    const data = (await res.json()) as WP_REST_API_Posts;
+    posts = [...posts, ...data];
+  }
+
+  return posts.map(({slug}) => ({
+    params: { slug },
   }));
 }
 
