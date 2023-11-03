@@ -1,7 +1,29 @@
 ---
-import type { WP_REST_API_Posts, WP_REST_API_User } from "wp-types";
-const res = await fetch("https://wordpress.org/news/wp-json/wp/v2/posts?_embed")
-const posts: WP_REST_API_Posts = await res.json();
+import { WP_REST_API_Posts,WP_REST_API_Post, WP_REST_API_User } from "wp-types";
+const { slug } = Astro.params;
+
+const res = await fetch(`https://wordpress.org/news/wp-json/wp/v2/posts?slug=${slug}&_embed`)
+const [post] = await res.json() as WP_REST_API_Posts;
+
+const getFeaturedMediaURL = ( post: WP_REST_API_Post ) => {
+    if ( post._embedded?.['wp:featuredmedia'] ) {
+        //@ts-ignore
+        return post._embedded?.['wp:featuredmedia']?.[0].media_details.sizes.medium.source_url;
+    }
+
+    return '';
+}
+
+export async function getStaticPaths() {
+  let data = await fetch("https://wordpress.org/news/wp-json/wp/v2/posts")
+  let posts = await data.json();
+
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post: post },
+  }));
+}
+
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -13,8 +35,7 @@ const posts: WP_REST_API_Posts = await res.json();
         <title>Clean Blog - Start Bootstrap Theme</title>
         <link rel="icon" type="image/x-icon" href="/assets/favicon.ico" />
         <!-- Font Awesome icons (free version)-->
-        <script is:inline src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous">import Post from "./post.astro";
-</script>
+        <script is:inline src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
         <!-- Google fonts-->
         <link href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" rel="stylesheet" type="text/css" />
         <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css" />
@@ -41,50 +62,39 @@ const posts: WP_REST_API_Posts = await res.json();
             </div>
         </nav>
         <!-- Page Header-->
-        <header class="masthead" style="background-image: url('/assets/img/home-bg.jpg')">
+        {
+            
+        }
+        <header class="masthead" style={`background-image: url(${getFeaturedMediaURL(post)})`}>
             <div class="container position-relative px-4 px-lg-5">
                 <div class="row gx-4 gx-lg-5 justify-content-center">
                     <div class="col-md-10 col-lg-8 col-xl-7">
-                        <div class="site-heading">
-                            <h1>Clean Blog</h1>
-                            <span class="subheading">A Blog Theme by Start Bootstrap</span>
+                        <div class="post-heading">
+                            <h1 set:html={post.title.rendered} />
+                            {!post.excerpt.rendered.includes("&hellip;") && (
+                                <h2 class="subheading">
+                                    <Fragment set:html={post.excerpt.rendered.replace(/(<([^>]+)>)/gi, "")} />
+                                </h3>    
+                            )}
+                            <span class="meta">
+                                Posted by <a href="#">{(post._embedded?.author[0] as WP_REST_API_User)?.name}</a> 
+                                on { new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(new Date(post.date))}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </header>
-        <!-- Main Content-->
-        <div class="container px-4 px-lg-5">
-            <div class="row gx-4 gx-lg-5 justify-content-center">
-                <div class="col-md-10 col-lg-8 col-xl-7">
-                    {
-                        posts.map((post) => (
-                            <Fragment>
-                                <div class="post-preview">
-                                    <a href={`/posts/${post.slug}/`}>
-                                        <h2 class="post-title" set:html={post.title.rendered} />
-                                        {!post.excerpt.rendered.includes("&hellip;") && (
-                                            <h3 class="post-subtitle">
-                                                <Fragment set:html={post.excerpt.rendered.replace(/(<([^>]+)>)/gi, "")} />
-                                            </h3>    
-                                        )}
-               
-                                    </a>
-                                    <p class="post-meta">
-                                        Posted by <a href="#">{(post._embedded?.author[0] as WP_REST_API_User)?.name}</a> 
-                                        on { new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(new Date(post.date))}
-                                    </p>
-                                </div>
-                                <hr class="my-4" />
-                            </Fragment>
-                        ))
-                    }
-
-                    <!-- Pager-->
-                    <div class="d-flex justify-content-end mb-4"><a class="btn btn-primary text-uppercase" href="#!">Older Posts →</a></div>
+        <!-- Post Content-->
+        <article class="mb-4">
+            <div class="container px-4 px-lg-5">
+                <div class="row gx-4 gx-lg-5 justify-content-center">
+                    <div class="col-md-10 col-lg-8 col-xl-7">
+                        <Fragment set:html={post.content.rendered} />
+                    </div>
                 </div>
             </div>
-        </div>
+        </article>
         <!-- Footer-->
         <footer class="border-top">
             <div class="container px-4 px-lg-5">
